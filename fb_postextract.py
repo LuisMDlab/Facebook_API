@@ -258,6 +258,8 @@ def scrapeFacebookPageFeedStatus(page_id, access_token):
 ###                                     ###         FIM DAS FUNÇÕES DE EXTRAÇÃO           ###                                     ###                                                      
 
 ###                                     ###         INÍCIO DA CHAMADA À EXTRAÇÃO           ###                                     ###                                                      
+
+#Identifica se a ID da fanpage é válida.
 def identificar(page_id, access_token):
     after = ''
     base = "https://graph.facebook.com/v2.9"
@@ -267,10 +269,10 @@ def identificar(page_id, access_token):
     after = '' if after is '' else "&after={}".format(after)
     base_url = base + node + parameters + after
     url = getFacebookPageFeedUrl(base_url)
-    
+ 
     req = Request(url)
-
     success = False
+
     while success is False:
         try:
             response = urlopen(req)
@@ -279,12 +281,16 @@ def identificar(page_id, access_token):
         except Exception as e:
             return 'Null'
 
+
 i = 0
 aux = 0
 
+
+#Percorre as IDs armazenadas nas listas criadas do csv, e aciona as funções de extração para cada uma.
 for i in range(len(pageId)):
-    print(pageId[i])
-    if identificar(pageId[i], access_token) == 'Null':#Pular as páginas offline
+    #Pular as páginas invalidas.
+    if identificar(pageId[i], access_token) == 'Null':
+        #Insere informações nulas no banco de dados.
         insert_post(nomePagina = link[aux], codINEP = codINEP[aux], pageId = pageId[aux], status_id = 'Indisponivel',
                     status_message = 'Indisponivel',link_name = 'Indisponivel', status_type = 'Indisponivel',
                     status_link = 'Indisponivel', status_published = 'Indisponivel',
@@ -292,7 +298,8 @@ for i in range(len(pageId)):
                     num_wows = 0, num_hahas = 0, num_sads = 0, num_angrys = 0)
         i +=1
     elif __name__ == '__main__':
+        #Se o ID for válido, extrair informações dos posts dessas páginas.
         scrapeFacebookPageFeedStatus(pageId[i], access_token)
     aux += 1
-###                                     ###         FIM DO SCRIPT           ###                                     ###                                                          
+###                                     ###             FIM DO SCRIPT             ###                                     ###                                                          
 
