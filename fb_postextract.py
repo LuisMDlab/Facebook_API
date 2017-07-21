@@ -1,42 +1,54 @@
 # -*- coding: utf-8 -*-
+#Python 3.6.1
+#Graph API v.2.9
+"""
+Created on Fri Jul 14 12:30:28 2017
+@author:LuisMDlab
+"""
+
+# Extract Facebook Posts Metadata Python Script.#
+
 import json
 import datetime
 import csv
 import time
 import pymysql
 from config import config, access_token
+try:
+    from urllib.request import urlopen, Request
+except ImportError:
+    from urllib2 import urlopen, Request
+    
+# Importa uma lista de ids presentes em um arquivo csv. (Ver scrapeID para extrair multiplas IDs de links de facebook.)
 
-#Importa uma lista de ids presentes em um arquivo csv.
 arquivoExemplo = open('listaDeIds.csv')
 leitorArquivo = csv.reader(arquivoExemplo)
 codINEP = []
 link = []
 pageId = []
 
+# Armazena as informações da planilha em listas.
 for row in leitorArquivo:
     codINEP.append(row[0])
     link.append(row[1])
     pageId.append(row[2])
-
-try:
-    from urllib.request import urlopen, Request
-except ImportError:
-    from urllib2 import urlopen, Request
-#Criação da tabela em um banco de dados já pré-definido(arquvio config)
-
-
-
-
+    
+###                                     ###         INÍCIO DE DEFINIÇÕES DO BD              ###                                     ###                                                      
+    
+# Conexão com o Banco de Dados MySQL, arquivo config contém as informações de conexão.
 cnx = pymysql.connect(**config)
 cursor = cnx.cursor()
 
+# DROPA a tabela posts caso ela exista, por padrão em comentário.
 #cursor.execute ("DROP TABLE IF EXISTS posts")
+
+# O "CHARACTER SET utf8mb4" serve para eviar o erro de encode, repassando a configuração de UTF-8 ao MySQL.
 cursor.execute('SET NAMES utf8mb4')
 cursor.execute("SET CHARACTER SET utf8mb4")
 cursor.execute("SET character_set_connection=utf8mb4")
 cnx.commit()
 
-# O "CHARACTER SET utf8mb4" serve para eviar o erro de encode, repassando a configuração de UTF-8 ao MySQL.
+# Define a tabela postas e suas propriedades.
 table_name = 'posts'
 table = ("CREATE TABLE `posts` ("
          "  `cod` int(11) NOT NULL AUTO_INCREMENT,"
@@ -61,6 +73,7 @@ table = ("CREATE TABLE `posts` ("
          "  PRIMARY KEY (`cod`)"
          ") ENGINE=InnoDB")
 
+# Função para criar a tabela "posts" no banco de dados e seta os caracteres em "utf-8".
 def create_db_table():
     cursor.execute('SHOW DATABASES;')
     all_dbs = cursor.fetchall()
@@ -75,16 +88,17 @@ def create_db_table():
     if all_tables.count(('pages',)) == 0:
         print("creating table")
         cursor.execute(table)
-        
-#create_db_table()
+# Chama a função de criação da tabela, por padrão sem comentário.        
+create_db_table()
 
+#Define a inserção de dados no banco de dados.
 add_message = ("INSERT INTO posts "
                "(nomePagina, codINEP, pageId, status_id, status_message, link_name, \
                status_type, status_link, status_published, \
                num_reactions, num_comments, num_shares, num_likes, num_loves, num_wows, num_hahas, num_sads, num_angrys)"
                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)")
 
-
+# Função para inserção dos dados.
 def insert_post(nomePagina, codINEP, pageId, status_id, status_message, link_name, status_type, status_link,
                 status_published, num_reactions, num_comments, num_shares, num_likes,
                 num_loves, num_wows, num_hahas, num_sads, num_angrys):
@@ -93,8 +107,9 @@ def insert_post(nomePagina, codINEP, pageId, status_id, status_message, link_nam
                     status_published, num_reactions, num_comments, num_shares, num_likes, num_loves,
                     num_wows, num_hahas, num_sads, num_angrys))
     cnx.commit()
+###                                     ###            FIM DE DEFINIÇÕES DO BD               ###                                     ###                                                      
 
-
+###                                     ###         INÍCIO DAS FUNÇÕES DE EXTRAÇÃO           ###                                     ###                                                      
 
 def request_until_succeed(url):
     req = Request(url)
@@ -244,9 +259,10 @@ def scrapeFacebookPageFeedStatus(page_id, access_token):
 
     print("\nDone!\n{} Statuses Processed in {}".format(
           num_processed, datetime.datetime.now() - scrape_starttime))
+    
+###                                     ###         FIM DAS FUNÇÕES DE EXTRAÇÃO           ###                                     ###                                                      
 
-
-
+###                                     ###         INÍCIO DA CHAMADA À EXTRAÇÃO           ###                                     ###                                                      
 def identificar(page_id, access_token):
     after = ''
     base = "https://graph.facebook.com/v2.9"
@@ -283,5 +299,5 @@ for i in range(len(pageId)):
     elif __name__ == '__main__':
         scrapeFacebookPageFeedStatus(pageId[i], access_token)
     aux += 1
-    
+###                                     ###         FIM DO SCRIPT           ###                                     ###                                                          
 
