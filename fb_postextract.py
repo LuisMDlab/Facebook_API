@@ -111,6 +111,7 @@ def insert_post(nomePagina, codINEP, pageId, status_id, status_message, link_nam
 
 ###                                     ###         INÍCIO DAS FUNÇÕES DE EXTRAÇÃO           ###                                     ###                                                      
 
+# Função para resquest da cURL, onde os dados dos posts estarão em json.
 def request_until_succeed(url):
     req = Request(url)
     success = False
@@ -127,44 +128,44 @@ def request_until_succeed(url):
                       
     return response.read().decode('utf-8') #Usei o .decode('utf-8') porque estava dando erro: "TypeError: the JSON object must be str, not 'bytes'"
 
-
-# Needed to write tricky unicode correctly to csv
+# Função para organizar a codificação dos dados em "UTF-8"
 def unicode_decode(text):
     try:
         return text.encode('utf-8').decode()
     except UnicodeDecodeError:
         return text.encode('utf-8')
 
-
+#Função para pegar o feed de posts de uma página, de ons os posts_ids serão recuperados.
 def getFacebookPageFeedUrl(base_url):
 
-    # Construct the URL string; see http://stackoverflow.com/a/37239851 for
-    # Reactions parameters
+    # Parte da construção da cURL da GraphAPI, para mais informações ver documentação da API.
+    # Campos das reactions
     fields = "&fields=message,link,created_time,type,name,id," + \
         "comments.limit(0).summary(true),shares,reactions" + \
         ".limit(0).summary(true)"
 
     return base_url + fields
 
-
+#Função para recuperar as reactions dos posts.
 def getReactionsForStatuses(base_url):
     reaction_types = ['like', 'love', 'wow', 'haha', 'sad', 'angry']
     reactions_dict = {}   # dict of {status_id: tuple<6>}
-
+    #Procurar cada reaction listada, adiciona à cURL, baixa os dados em Json, e adiciona ao dicionário. 
     for reaction_type in reaction_types:
         fields = "&fields=reactions.type({}).limit(0).summary(total_count)".format(
             reaction_type.upper())
 
         url = base_url + fields
-
         data = json.loads(request_until_succeed(url))['data']
-
-        data_processed = set()  # set() removes rare duplicates in statuses
+        data_processed = set()  # set() remove duplicações raras nos posts.
+        
+        #Adiciona o ID do post e a contagem total da reação ao docionário data_processed.
         for status in data:
             id = status['id']
             count = status['reactions']['summary']['total_count']
             data_processed.add((id, count))
-
+        
+        #Conta e armazena o total de reactions no dicionário reactions_dict.
         for id, count in data_processed:
             if id in reactions_dict:
                 reactions_dict[id] = reactions_dict[id] + (count,)
@@ -173,18 +174,13 @@ def getReactionsForStatuses(base_url):
 
     return reactions_dict
 
-
+#Função de processamento das informações dos posts.
 def processFacebookPageFeedStatus(status):
 
-    # The status is now a Python dictionary, so for top-level items,
-    # we can simply call the key.
-
-    # Additionally, some items may not always exist,
-    # so must check for existence first
-
+    #A partir do dicionário "status" são chamadas as chaves.
+    #Como algumas informaçõe spodem nãi existir, são checadas pelas condicionais abaixo.
     status_id = status['id']
     status_type = status['type']
-
     status_message = '' if 'message' not in status else \
         unicode_decode(status['message'])
     link_name = '' if 'name' not in status else \
@@ -192,18 +188,15 @@ def processFacebookPageFeedStatus(status):
     status_link = '' if 'link' not in status else \
         unicode_decode(status['link'])
 
-    # Time needs special care since a) it's in UTC and
-    # b) it's not easy to use in statistical programs.
-
+    # Cuidados especiais com a formatação da informação de data.
     status_published = datetime.datetime.strptime(
         status['created_time'], '%Y-%m-%dT%H:%M:%S+0000')
     status_published = status_published + \
         datetime.timedelta(hours=-5)  # EST
     status_published = status_published.strftime(
-        '%Y-%m-%d %H:%M:%S')  # best time format for spreadsheet programs
-
-    # Nested items require chaining dictionary keys.
-
+        '%Y-%m-%d %H:%M:%S')
+    
+    # Como os itens abaixo estão aninhados em json, foram utilizados dicionários em cadeia.
     num_reactions = 0 if 'reactions' not in status else \
         status['reactions']['summary']['total_count']
     num_comments = 0 if 'comments' not in status else \
@@ -213,7 +206,11 @@ def processFacebookPageFeedStatus(status):
     return (status_id, status_message.encode("utf-8"), link_name.encode("utf-8"), status_type.encode("utf-8"), status_link.encode("utf-8"),
             status_published, num_reactions, num_comments, num_shares)
 
+# Função para extração das informações das postagens das páginas de Facebook.
 def scrapeFacebookPageFeedStatus(page_id, access_token):
+    #Como cada vez que uma cURL é chamada, se houver muitas informaçoes elas vem separadas por página, então esse fato,
+    #tem de ser verificado, para que todas as informações sejam armazenadas.
+    
     has_next_page = True
     num_processed = 0
     scrape_starttime = datetime.datetime.now()
