@@ -280,11 +280,8 @@ def identificar(page_id, access_token):
                 success = True
         except Exception as e:
             return 'Null'
-
-
 i = 0
 aux = 0
-
 
 #Percorre as IDs armazenadas nas listas criadas do csv, e aciona as funções de extração para cada uma.
 for i in range(len(pageId)):
