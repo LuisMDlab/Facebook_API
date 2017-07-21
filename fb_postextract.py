@@ -5,15 +5,13 @@
 Created on Fri Jul 14 12:30:28 2017
 @author:LuisMDlab
 """
-
 # Extract Facebook Posts Metadata Python Script.#
-
 import json
 import datetime
 import csv
 import time
-import pymysql
-from config import config, access_token
+import pymysql #Conexão com o MySQL a partir do pymysql, para o Python 3.6.1
+from config import config, access_token #Acess Token da GraphAPI está armazenada em outro arquivo, seu formato é: "appid|appsecret".
 try:
     from urllib.request import urlopen, Request
 except ImportError:
@@ -224,18 +222,19 @@ def scrapeFacebookPageFeedStatus(page_id, access_token):
     while has_next_page:
         after = '' if after is '' else "&after={}".format(after)
         base_url = base + node + parameters + after
-        
+        #Chama as funções de conexão com a cURL e os dados em Json
         url = getFacebookPageFeedUrl(base_url)
         statuses = json.loads(request_until_succeed(url))
         reactions = getReactionsForStatuses(base_url)
         
+        #Percorre todos os posts de uma FanPage
         for status in statuses['data']:
-            
-            # Ensure it is a status with the expected metadata
+            #Busca as informações de reações de um Post.
             if 'reactions' in status:
                     status_data = processFacebookPageFeedStatus(status)
                     reactions_data = reactions[status_data[0]]
-                    print(reactions_data)
+                    
+                    #Insere as informações recuperadas no banco de dados.
                     insert_post(nomePagina = link[aux], codINEP = codINEP[aux], pageId = pageId[aux], status_id = status_data[0], status_message = status_data[1], link_name = status_data[2],
                                 status_type = status_data[3], status_link = status_data[4], status_published = status_data[5],
                                 num_reactions = status_data[6], num_comments = status_data[7], num_shares = status_data[8],
@@ -248,14 +247,13 @@ def scrapeFacebookPageFeedStatus(page_id, access_token):
                 print("{} Statuses Processed: {}".format(num_processed, datetime.datetime.now()))
                 time.sleep(1.5)
                                 
-        # if there is no next page, we're done.
+        # Confere se existe próxima página.
         if 'paging' in statuses:
             after = statuses['paging']['cursors']['after']
         else:
             has_next_page = False
-
-    print("\nDone!\n{} Statuses Processed in {}".format(
-          num_processed, datetime.datetime.now() - scrape_starttime))
+    #Print para acompanhamento das postagens resuperadas.
+    print("\nDone!\n{} Statuses Processed in {}".format(num_processed, datetime.datetime.now() - scrape_starttime))
     
 ###                                     ###         FIM DAS FUNÇÕES DE EXTRAÇÃO           ###                                     ###                                                      
 
