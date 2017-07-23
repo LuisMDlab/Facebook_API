@@ -299,4 +299,8 @@ for i in range(len(pageId)):
         scrapeFacebookPageFeedStatus(pageId[i], access_token)
     aux += 1
 ###                                     ###             FIM DO SCRIPT             ###                                     ###                                                          
+'''Este script foi desenvolvido com base em outros dois scripts e adaptado às necessidades do meu mestrado. Os dois 
+scripts-base podem ser acompanhados abaixo:
 
+Script Principal - https://github.com/minimaxir/facebook-page-post-scraper
+Script Secundário - https://github.com/jdzorz/facebook-graph-save-mysql/blob/master/main.py#L49 '''
