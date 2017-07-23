@@ -124,7 +124,8 @@ def request_until_succeed(url):
             print("Error for URL {}: {}".format(url, datetime.datetime.now()))
             print("Retrying.")
                       
-    return response.read().decode('utf-8') #Usei o .decode('utf-8') porque estava dando erro: "TypeError: the JSON object must be str, not 'bytes'"
+    return response.read().decode('utf-8') #Usei o .decode('utf-8') porque estava dando erro: "TypeError: the JSON object must be str,
+    #not 'bytes'"
 
 # Função para organizar a codificação dos dados em "UTF-8"
 def unicode_decode(text):
@@ -201,8 +202,8 @@ def processFacebookPageFeedStatus(status):
         status['comments']['summary']['total_count']
     num_shares = 0 if 'shares' not in status else status['shares']['count']
 
-    return (status_id, status_message.encode("utf-8"), link_name.encode("utf-8"), status_type.encode("utf-8"), status_link.encode("utf-8"),
-            status_published, num_reactions, num_comments, num_shares)
+    return (status_id, status_message.encode("utf-8"), link_name.encode("utf-8"), status_type.encode("utf-8"), 
+            status_link.encode("utf-8"), status_published, num_reactions, num_comments, num_shares)
 
 # Função para extração das informações das postagens das páginas de Facebook.
 def scrapeFacebookPageFeedStatus(page_id, access_token):
@@ -235,11 +236,12 @@ def scrapeFacebookPageFeedStatus(page_id, access_token):
                     reactions_data = reactions[status_data[0]]
                     
                     #Insere as informações recuperadas no banco de dados.
-                    insert_post(nomePagina = link[aux], codINEP = codINEP[aux], pageId = pageId[aux], status_id = status_data[0], status_message = status_data[1], link_name = status_data[2],
-                                status_type = status_data[3], status_link = status_data[4], status_published = status_data[5],
-                                num_reactions = status_data[6], num_comments = status_data[7], num_shares = status_data[8],
-                                num_likes = reactions_data[0], num_loves = reactions_data[1], num_wows = reactions_data[2],
-                                num_hahas = reactions_data[3], num_sads = reactions_data[4], num_angrys = reactions_data[5])
+                    insert_post(nomePagina = link[aux], codINEP = codINEP[aux], pageId = pageId[aux], status_id = status_data[0],
+                                status_message = status_data[1], link_name = status_data[2], status_type = status_data[3],
+                                status_link = status_data[4], status_published = status_data[5],num_reactions = status_data[6],
+                                num_comments = status_data[7], num_shares = status_data[8], num_likes = reactions_data[0],
+                                num_loves = reactions_data[1], num_wows = reactions_data[2],num_hahas = reactions_data[3],
+                                num_sads = reactions_data[4], num_angrys = reactions_data[5])
             time.sleep(0.5)
             num_processed += 1
             print(status_data[0])
@@ -255,7 +257,7 @@ def scrapeFacebookPageFeedStatus(page_id, access_token):
     #Print para acompanhamento das postagens resuperadas.
     print("\nDone!\n{} Statuses Processed in {}".format(num_processed, datetime.datetime.now() - scrape_starttime))
     
-###                                     ###         FIM DAS FUNÇÕES DE EXTRAÇÃO           ###                                     ###                                                      
+###                                     ###         FIM DAS FUNÇÕES DE EXTRAÇÃO           ###                                      ###                                                      
 
 ###                                     ###         INÍCIO DA CHAMADA À EXTRAÇÃO           ###                                     ###                                                      
 
@@ -298,7 +300,7 @@ for i in range(len(pageId)):
         #Se o ID for válido, extrair informações dos posts dessas páginas.
         scrapeFacebookPageFeedStatus(pageId[i], access_token)
     aux += 1
-###                                     ###             FIM DO SCRIPT             ###                                     ###                                                          
+###                                     ###                 FIM DO SCRIPT                   ###                                     ###                                                          
 '''Este script foi desenvolvido com base em outros dois scripts e adaptado às necessidades do meu mestrado. Os dois 
 scripts-base podem ser acompanhados abaixo:
 
