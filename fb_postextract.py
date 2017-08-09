@@ -8,8 +8,9 @@ Created on Fri Jul 14 12:30:28 2017
 # Extract Facebook Posts Metadata Python Script.#
 import json
 import datetime
-import csv
 import time
+import csv
+import requests
 import pymysql #Conexão com o MySQL a partir do pymysql, para o Python 3.6.1
 from config import config, access_token #Acess Token da GraphAPI está armazenada em outro arquivo, seu formato é: "appid|appsecret".
 try:
@@ -17,8 +18,7 @@ try:
 except ImportError:
     from urllib2 import urlopen, Request
     
-# Importa uma lista de ids presentes em um arquivo csv. (Ver scrapeID para extrair multiplas IDs de links de facebook.)
-
+# Importa uma lista de ids presentes em um arquivo csv. (Ver scrapeID para extrair multiplas IDs de links de facebook.
 arquivoExemplo = open('listaDeIds.csv')
 leitorArquivo = csv.reader(arquivoExemplo)
 codINEP = []
@@ -231,7 +231,7 @@ def scrapeFacebookPageFeedStatus(page_id, access_token):
         #Percorre todos os posts de uma FanPage
         for status in statuses['data']:
             #Busca as informações de reações de um Post.
-            if 'reactions' in status:
+            if 'id' in status:
                     status_data = processFacebookPageFeedStatus(status)
                     reactions_data = reactions[status_data[0]]
                     
@@ -261,38 +261,35 @@ def scrapeFacebookPageFeedStatus(page_id, access_token):
 
 ###                                     ###         INÍCIO DA CHAMADA À EXTRAÇÃO           ###                                     ###                                                      
 
-#Identifica se a ID da fanpage é válida.
-def identificar(page_id, access_token):
+#Identifica se a ID da fanpage é válida e qual o erro se ele existir.
+def peneira(page_id, access_token):
     after = ''
-    base = "https://graph.facebook.com/v2.9"
+    base = "https://graph.facebook.com/v2.10"
     node = "/{}/posts".format(page_id)
     parameters = "/?limit={}&access_token={}".format(100, access_token)
-
-    after = '' if after is '' else "&after={}".format(after)
     base_url = base + node + parameters + after
     url = getFacebookPageFeedUrl(base_url)
- 
-    req = Request(url)
-    success = False
-
-    while success is False:
-        try:
-            response = urlopen(req)
-            if response.getcode() == 200:
-                success = True
-        except Exception as e:
-            return 'Null'
+    r = requests.get(url)
+    estado = r.json()
+    if "error" in estado:
+        resultado = estado["error"]["message"]
+    elif estado["data"] == []:
+        resultado = "Sem Dados"
+    else:
+        resultado = True
+    return resultado
 i = 0
 aux = 0
 
 #Percorre as IDs armazenadas nas listas criadas do csv, e aciona as funções de extração para cada uma.
 for i in range(len(pageId)):
+    print('Iniciando o Scrape do: {}'.format(pageId[i]))
     #Pular as páginas invalidas.
-    if identificar(pageId[i], access_token) == 'Null':
+    if peneira(pageId[i], access_token) != True:
         #Insere informações nulas no banco de dados.
-        insert_post(nomePagina = link[aux], codINEP = codINEP[aux], pageId = pageId[aux], status_id = 'Indisponivel',
-                    status_message = 'Indisponivel',link_name = 'Indisponivel', status_type = 'Indisponivel',
-                    status_link = 'Indisponivel', status_published = 'Indisponivel',
+        insert_post(linkPagina = link[aux], codINEP = codINEP[aux], pageId = pageId[aux], status_id = 'Nulo',
+                    status_message = peneira(pageId[i], access_token),link_name = 'Nulo', status_type = 'Nulo',
+                    status_link = 'Nulo', status_published = 'Nulo',
                     num_reactions = 0, num_comments = 0, num_shares = 0, num_likes = 0, num_loves = 0,
                     num_wows = 0, num_hahas = 0, num_sads = 0, num_angrys = 0)
         i +=1
